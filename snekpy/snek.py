@@ -12,9 +12,8 @@ class Dir(Enum):
     LEFT = 3
     RIGHT = 4
 
-# Global direction of dot
+# Global direction of snake
 DIR = Dir.IDLE
-DEBUG = False
 
 def disable_input():
     os.system("stty -echo")
@@ -25,8 +24,7 @@ def enable_input():
 
 def on_press(key):
     global DIR
-    global DEBUG
-    # Select dot direction on key press
+    # Select direction on key press
     if key is Key.up:
         DIR = Dir.UP
     elif key is Key.down:
@@ -35,10 +33,6 @@ def on_press(key):
         DIR = Dir.LEFT
     elif key is Key.right:
         DIR = Dir.RIGHT
-
-    if DEBUG:
-        print('{} -> {}'.format(key, DIR))
-        sys.stdout.flush()
 
 def on_release(key):
     if key == Key.esc:
@@ -55,7 +49,6 @@ def round(num, _min, _max):
 
 
 def clearAll():
-    #os.system('clear')
     # Nasty hack for fast console clear
     sys.stdout.write(chr(27) + "[1;1H" + chr(27) + "[2J");
 
@@ -240,9 +233,6 @@ if __name__ == '__main__':
 
     while True:
         field.printState()
-        if DEBUG:
-            print('{}'.format(DIR))
-            sys.stdout.flush()
         game_on = field.move(DIR)
         if not game_on or not listener.running:
             break
