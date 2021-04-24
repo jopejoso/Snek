@@ -7,4 +7,3 @@ Simple ASCII snake game
 - [ ] Add better gui: prompt info message
 - [ ] Score board
 - [ ] Different levels and game options
-- [ ] Make it work for all OS-es
