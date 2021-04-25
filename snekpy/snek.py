@@ -5,6 +5,7 @@ import os
 from enum import Enum
 from random import randint
 
+
 class Dir(Enum):
     IDLE = 0
     UP = 1
@@ -12,11 +13,14 @@ class Dir(Enum):
     LEFT = 3
     RIGHT = 4
 
+
 # Global direction of snake
 DIR = Dir.IDLE
 
+
 def disable_input():
     os.system("stty -echo")
+
 
 def enable_input():
     os.system("stty echo")
@@ -34,52 +38,45 @@ def on_press(key):
     elif key is Key.right:
         DIR = Dir.RIGHT
 
+
 def on_release(key):
     if key == Key.esc:
         # Stop listener
         return False
 
 
-def round(num, _min, _max):
-    if num < _min:
-        return _min
-    elif num > _max:
-        return _max
-    return num
-
-
 def clearAll():
     # Nasty hack for fast console clear
-    sys.stdout.write(chr(27) + "[1;1H" + chr(27) + "[2J");
+    sys.stdout.write(chr(27) + "[1;1H" + chr(27) + "[2J")
+
 
 class FieldSize:
 
-    def to1D(self, x:int, y:int):
+    def to1D(self, x: int, y: int):
         return y * self.size + x
 
-    def __init__(self, size:int=50):
+    def __init__(self, size: int = 50):
         self.size = size
-        self.max1D = self.to1D(size-1, size-1)
+        self.max1D = self.to1D(size - 1, size - 1)
 
-    def x(self, num:int):
-        return int( num % self.size )
+    def x(self, num: int):
+        return int(num % self.size)
 
-    def y(self, num:int):
-        return int( num / self.size )
+    def y(self, num: int):
+        return int(num / self.size)
 
-    def xy(self, num:int):
+    def xy(self, num: int):
         return self.x(num), self.y(num)
 
-    def _in(self, ax:int):
-        return ax >= 0 and ax < self.size
+    def _in(self, ax: int):
+        return 0 <= ax < self.size
 
-    def isIn(self, x:int, y:int):
+    def isIn(self, x: int, y: int):
         return self._in(x) and self._in(y)
-        
 
 
 class Snake:
-    def __init__(self, fieldSize:FieldSize, initDir:Dir=Dir.RIGHT, points=None):
+    def __init__(self, fieldSize: FieldSize, initDir: Dir = Dir.RIGHT, points=None):
         if points is None:
             points = list()
             num = int(fieldSize.size / 3)
@@ -91,24 +88,24 @@ class Snake:
         self.direction = initDir
         self.plist = points
         self.pset = set(points)
-        self.oposite = {Dir.UP:Dir.DOWN, Dir.DOWN:Dir.UP, Dir.LEFT:Dir.RIGHT, Dir.RIGHT:Dir.LEFT}
+        self.oposite = {Dir.UP: Dir.DOWN, Dir.DOWN: Dir.UP, Dir.LEFT: Dir.RIGHT, Dir.RIGHT: Dir.LEFT}
 
-    def _eat(self, x:int, y:int):
+    def _eat(self, x: int, y: int):
         p = self.fieldSize.to1D(x, y)
         self.plist.append(p)
         self.pset.add(p)
 
-    def _move(self, x:int, y:int, food:bool):
+    def _move(self, x: int, y: int, food: bool):
         self._eat(x, y)
         if not food:
             pfirst = self.plist.pop(0)
             self.pset.remove(pfirst)
 
-    def containsPoints(self, x:int, y:int):
+    def containsPoints(self, x: int, y: int):
         p = self.fieldSize.to1D(x, y)
         return p in self.pset
 
-    def containsPoint(self, p:int):
+    def containsPoint(self, p: int):
         return p in self.pset
 
     def next(self):
@@ -124,10 +121,10 @@ class Snake:
             x += 1
         return x, y
 
-    def isValid(self, x:int, y:int):
+    def isValid(self, x: int, y: int):
         return self.fieldSize.isIn(x, y) and not self.containsPoints(x, y)
 
-    def move(self, food:bool):
+    def move(self, food: bool):
         x, y = self.next()
         if self.isValid(x, y):
             self._move(x, y, food)
@@ -135,7 +132,7 @@ class Snake:
         else:
             return False
 
-    def setDir(self, direction:Dir):
+    def setDir(self, direction: Dir):
         if direction is not Dir.IDLE and self.oposite[direction] is not self.direction:
             self.direction = direction
 
@@ -143,11 +140,11 @@ class Snake:
 class Field:
     def _define_empty_field_str(self):
         m = self.fieldSize.size
-        topBot = '+' + ( '-' * m ) + '+'
-        empties = '|' + ( self.cempty * m ) + '|'
+        topBot = '+' + ('-' * m) + '+'
+        empties = '|' + (self.cempty * m) + '|'
         self.emptyTemplate = topBot + '\n' + ((empties + '\n') * m) + topBot
 
-    def _new_food(self, foodcnt:int=1):
+    def _new_food(self, foodcnt: int = 1):
         cnt = 0
         while cnt < foodcnt:
             f = randint(0, self.fieldSize.max1D)
@@ -159,20 +156,20 @@ class Field:
         self.food.remove(old)
         self._new_food()
 
-    def __init__(self, size:int=50, foodcnt:int=1, cfood='*', csnake='+', cshead='o', cempty=' '):
+    def __init__(self, size: int = 50, foodcnt: int = 1, cfood='*', csnake='+', cshead='o', cempty=' '):
         self.cfood = cfood
         self.csnake = csnake
         self.cshead = cshead
         self.cempty = cempty
         self.fieldSize = FieldSize(size)
-        self.printFieldSize = FieldSize(size + 3) # Added characters: '|', '|', '\n'
+        self.printFieldSize = FieldSize(size + 3)  # Added characters: '|', '|', '\n'
         self.snake = Snake(self.fieldSize)
         self.ongoing = True
         self._define_empty_field_str()
         self.food = set()
         self._new_food(foodcnt=foodcnt)
 
-    def move(self, direction:Dir):
+    def move(self, direction: Dir):
         if not self.ongoing:
             return self.ongoing
         self.snake.setDir(direction)
@@ -183,8 +180,8 @@ class Field:
         if isfood:
             self._change_food(p)
         return self.ongoing
-    
-    def _get_print_point(self, field_point:int):
+
+    def _get_print_point(self, field_point: int):
         x, y = self.fieldSize.xy(field_point)
         return self.printFieldSize.to1D(x + 1, y + 1)
 
@@ -203,12 +200,12 @@ class Field:
             string_list[ps] = self.csnake
         # Snake head
         h = self.snake.plist[-1]
-        ps = self._get_print_point(s)
-        string_list[ps] = self.cshead
+        ph = self._get_print_point(h)
+        string_list[ph] = self.cshead
 
         print(''.join(string_list))
         sys.stdout.flush()
-        
+
 
 class Speed(Enum):
     S0 = 0.3
@@ -242,4 +239,3 @@ if __name__ == '__main__':
 
     print("Snek done :)")
     sleep(1.0)
-
