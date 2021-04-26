@@ -1,53 +1,7 @@
-from pynput.keyboard import Key, Listener
-import sys
 from time import sleep
-import os
-from enum import Enum
+from keyshandler import *
 from random import randint
-
-
-class Dir(Enum):
-    IDLE = 0
-    UP = 1
-    DOWN = 2
-    LEFT = 3
-    RIGHT = 4
-
-
-# Global direction of snake
-DIR = Dir.IDLE
-
-
-def disable_input():
-    os.system("stty -echo")
-
-
-def enable_input():
-    os.system("stty echo")
-
-
-def on_press(key):
-    global DIR
-    # Select direction on key press
-    if key is Key.up:
-        DIR = Dir.UP
-    elif key is Key.down:
-        DIR = Dir.DOWN
-    elif key is Key.left:
-        DIR = Dir.LEFT
-    elif key is Key.right:
-        DIR = Dir.RIGHT
-
-
-def on_release(key):
-    if key == Key.esc:
-        # Stop listener
-        return False
-
-
-def clearAll():
-    # Nasty hack for fast console clear
-    sys.stdout.write(chr(27) + "[1;1H" + chr(27) + "[2J")
+import argparse
 
 
 class FieldSize:
@@ -88,7 +42,7 @@ class Snake:
         self.direction = initDir
         self.plist = points
         self.pset = set(points)
-        self.oposite = {Dir.UP: Dir.DOWN, Dir.DOWN: Dir.UP, Dir.LEFT: Dir.RIGHT, Dir.RIGHT: Dir.LEFT}
+        self.oppositeDir = {Dir.UP: Dir.DOWN, Dir.DOWN: Dir.UP, Dir.LEFT: Dir.RIGHT, Dir.RIGHT: Dir.LEFT}
 
     def _eat(self, x: int, y: int):
         p = self.fieldSize.to1D(x, y)
@@ -133,8 +87,11 @@ class Snake:
             return False
 
     def setDir(self, direction: Dir):
-        if direction is not Dir.IDLE and self.oposite[direction] is not self.direction:
+        if direction is not Dir.IDLE and self.oppositeDir[direction] is not self.direction:
             self.direction = direction
+
+    def size(self):
+        return len(self.plist)
 
 
 class Field:
@@ -170,7 +127,7 @@ class Field:
         self._new_food(foodcnt=foodcnt)
 
     def move(self, direction: Dir):
-        if not self.ongoing:
+        if not self.ongoing or direction is Dir.STOP:
             return self.ongoing
         self.snake.setDir(direction)
         x, y = self.snake.next()
@@ -185,11 +142,8 @@ class Field:
         x, y = self.fieldSize.xy(field_point)
         return self.printFieldSize.to1D(x + 1, y + 1)
 
-    def printState(self):
-        clearAll()
-
+    def __str__(self):
         string_list = list(self.emptyTemplate)
-
         # Food
         for f in self.food:
             pf = self._get_print_point(f)
@@ -202,40 +156,47 @@ class Field:
         h = self.snake.plist[-1]
         ph = self._get_print_point(h)
         string_list[ph] = self.cshead
-
-        print(''.join(string_list))
-        sys.stdout.flush()
+        return ''.join(string_list)
 
 
-class Speed(Enum):
-    S0 = 0.3
-    S1 = 0.25
-    S2 = 0.20
-    S3 = 0.15
-    S4 = 0.1
-    S5 = 0.08
-    S6 = 0.06
-    S7 = 0.05
-    S8 = 0.035
-    S9 = 0.025
+class Game:
+    def __init__(self, speed=Speed.S4, size=25):
+        self.field = Field(size)
+        self.listener = get_snek_listener()
+        self.speed = speed
+
+    def start_msg(self):
+        size = self.field.fieldSize.size + 2
+        str_list = [' ASCII Snake ', ' Pause: <Space> ', ' Exit: <Esc> ', ' Score: {:>3} '.format(str(self.field.snake.size()))]
+        max_size = max([len(s) for s in str_list])
+        before = int((size - max_size) / 2) if max_size < size else 0
+        ret_list = ['=' * size]
+        for s in str_list:
+            ret_list.append('-' * before + s + '-' * max(0, size - len(s) - before))
+        ret_list.append('=' * size)
+        return '\n'.join(ret_list) + '\n'
+
+    def play(self):
+        self.listener.start()
+
+        def _play():
+            while True:
+                clear_all()
+                print(self.start_msg())
+                print(self.field)
+                sys.stdout.flush()
+                game_on = self.field.move(global_direction())
+                if not game_on or not self.listener.running:
+                    break
+                sleep(self.speed.value)
+
+        clean_console_action(_play)
 
 
 if __name__ == '__main__':
-    disable_input()
-
-    speed = Speed.S4
-    listener = Listener(on_press=on_press, on_release=on_release)
-    listener.start()
-    field = Field(25)
-
-    while True:
-        field.printState()
-        game_on = field.move(DIR)
-        if not game_on or not listener.running:
-            break
-        sleep(speed.value)
-
-    enable_input()
-
-    print("Snek done :)")
-    sleep(1.0)
+    parser = argparse.ArgumentParser(description='Simple ASCII snake game')
+    parser.add_argument('-s', metavar='N', type=int, help='size of the snake')
+    args = parser.parse_args()
+    fsize = args.s if args.s is not None else 20
+    game = Game(size=fsize)
+    game.play()
